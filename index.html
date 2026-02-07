@@ -184,7 +184,34 @@
   .ps-t{font-size:9px;color:var(--dim);margin-top:3px}
 
   ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#444;border-radius:2px}
-  @media(max-width:900px){.main{grid-template-columns:1fr;height:auto;overflow-y:auto}.pg{grid-template-columns:repeat(3,1fr)}}
+
+  /* Mobile tab bar */
+  .mob-tabs{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--c1);border-top:1px solid #333;z-index:100;padding:6px 0;padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  .mob-tabs-inner{display:flex;justify-content:space-around}
+  .mob-tab{
+    background:none;border:none;color:var(--dim);font-size:11px;font-weight:700;
+    display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 12px
+  }
+  .mob-tab.active{color:var(--acc)}
+  .mob-tab-icon{font-size:18px}
+
+  @media(max-width:900px){
+    body{overflow:auto}
+    .main{display:block;height:auto;padding:6px;padding-bottom:70px}
+    .main>.pnl,.main>.ctr,.main>.log-p{display:none}
+    .main>.pnl.mob-show,.main>.ctr.mob-show,.main>.log-p.mob-show{display:flex;flex-direction:column}
+    .mob-tabs{display:block}
+    .pg{grid-template-columns:repeat(3,1fr)}
+    .spd-numpad{grid-template-columns:repeat(6,1fr)}
+    .spd-nb{width:100%;height:52px;font-size:24px}
+    .spd-nb.cls{width:100%}
+    .spd-show{font-size:28px;min-width:auto}
+    .pt-b{min-width:0;flex:1;font-size:12px;padding:8px 4px}
+    .rs-b{min-width:0;flex:1;font-size:11px;padding:6px 4px}
+    .bso-b{font-size:14px;min-height:48px}
+    .ilbl{width:38px;font-size:10px}
+    .cnt{flex-wrap:wrap;gap:10px}
+  }
 </style>
 </head>
 <body>
@@ -194,7 +221,7 @@
 </div>
 <div class="main">
   <!-- LEFT -->
-  <div class="pnl" style="display:flex;flex-direction:column;gap:4px">
+  <div class="pnl mob-show" id="panelPlayers" style="display:flex;flex-direction:column;gap:4px">
     <div id="pitcherSection">
       <div class="pnl-t">⚾ 投手（支配下）</div>
       <div class="pg" id="pG"></div>
@@ -210,7 +237,7 @@
   </div>
 
   <!-- CENTER -->
-  <div class="ctr">
+  <div class="ctr" id="panelInput">
     <div class="st">
       <div style="text-align:center"><div class="st-r">Pitcher</div><div class="st-n" id="cP">—</div></div>
       <div class="st-v">VS</div>
@@ -279,13 +306,20 @@
   </div>
 
   <!-- RIGHT -->
-  <div class="pnl log-p">
+  <div class="pnl log-p" id="panelLog">
     <div class="log-h">
       <div class="pnl-t">📋 投球ログ</div>
       <button class="sum-btn" onclick="showSum()">📊 集計</button>
     </div>
     <div id="sumA"></div>
     <div class="log-list" id="logL"></div>
+  </div>
+</div>
+<div class="mob-tabs">
+  <div class="mob-tabs-inner">
+    <div class="mob-tab active" onclick="mobTab('Players',this)"><span class="mob-tab-icon">👤</span>選手</div>
+    <div class="mob-tab" onclick="mobTab('Input',this)"><span class="mob-tab-icon">⚾</span>入力</div>
+    <div class="mob-tab" onclick="mobTab('Log',this)"><span class="mob-tab-icon">📋</span>ログ</div>
   </div>
 </div>
 <script>
@@ -365,7 +399,7 @@ function selP(t,n,el){
     const sec=document.getElementById('pitcherSection');
     if(sec)sec.remove();
   }
-  else{S.batter=n;document.getElementById('cB').textContent=n}
+  else{S.batter=n;document.getElementById('cB').textContent=n;mobSwitchTo('Input')}
 }
 function selSB(el){document.querySelectorAll('.bso-b').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');S.sb=el.dataset.sb}
 let spdBuf='';
@@ -545,6 +579,27 @@ function showSum(){
     h+=`<div class="ps"><div class="ps-n">${n}</div><div class="ps-s"><div><span>球数:</span><strong>${s.cnt}</strong></div><div><span>最速:</span><strong>${s.mx>0?s.mx+'km':'—'}</strong></div><div><span>S%:</span><strong>${sr}%</strong></div></div>${ts?`<div class="ps-t">${ts}</div>`:''}</div>`;
   }
   if(!h)h='<div style="text-align:center;color:#888;padding:10px;font-size:11px">まだ記録がありません</div>';a.innerHTML=h;
+}
+// Mobile tab switching
+function isMobile(){return window.innerWidth<=900}
+function mobTab(name,tabEl){
+  if(!isMobile())return;
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+  if(tabEl)tabEl.classList.add('active');
+  const panels={Players:'panelPlayers',Input:'panelInput',Log:'panelLog'};
+  Object.values(panels).forEach(id=>{document.getElementById(id).classList.remove('mob-show')});
+  document.getElementById(panels[name]).classList.add('mob-show');
+  window.scrollTo(0,0);
+}
+function mobSwitchTo(name){
+  if(!isMobile())return;
+  const tabs=document.querySelectorAll('.mob-tab');
+  const idx={Players:0,Input:1,Log:2}[name];
+  tabs.forEach((t,i)=>t.classList.toggle('active',i===idx));
+  const panels={Players:'panelPlayers',Input:'panelInput',Log:'panelLog'};
+  Object.values(panels).forEach(id=>{document.getElementById(id).classList.remove('mob-show')});
+  document.getElementById(panels[name]).classList.add('mob-show');
+  window.scrollTo(0,0);
 }
 init();
 </script>
